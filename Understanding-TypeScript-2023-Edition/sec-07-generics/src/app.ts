@@ -41,14 +41,14 @@ function extractAndConvert<T extends object, U extends keyof T>(
 console.log(extractAndConvert({ name: "Fika" }, "name"));
 
 // 99 GENERIC CLASSES
-class DataStorage<T > {
+class DataStorage<T> {
   private data: T[] = [];
 
   addItem(item: T) {
     this.data.push(item);
   }
 
-  removeItem(item) {
+  removeItem(item: T) {
     this.data.splice(this.data.indexOf(item), 1);
   }
 
@@ -56,3 +56,34 @@ class DataStorage<T > {
     return [...this.data];
   }
 }
+
+const textStorage = new DataStorage<string>();
+textStorage.addItem("10");
+console.log(textStorage.getItems());
+
+const numberStorage = new DataStorage<Number>();
+numberStorage.addItem(10);
+console.log(numberStorage.getItems());
+
+// 101 generic utility types
+interface CourseGoal {
+  title: string;
+  description: string;
+  completeUnti: Date;
+}
+
+function createCourseGoal(
+  title: string,
+  description: string,
+  date: Date
+): CourseGoal {
+  let courseGoal: Partial<CourseGoal> = {};
+  courseGoal.title = title;
+  courseGoal.description = description;
+  courseGoal.completeUnti = date;
+
+  return courseGoal as CourseGoal;
+}
+
+const names = ["Max", "Sports"];
+names.push("Fika");
