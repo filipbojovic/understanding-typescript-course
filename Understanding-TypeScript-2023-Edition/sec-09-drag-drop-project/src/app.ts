@@ -1,3 +1,18 @@
+// drag and drop interfaces 134
+interface Draggable {
+  dragStartHandler(event: DragEvent): void;
+  dragEndHandler(event: DragEvent): void;
+}
+
+interface DragTarget {
+  // signal the browser that the thing we are dragging over is a valid drag target
+  dragOverHandler(event: DragEvent): void;
+  // handler the drop (update data and ui)
+  dropHandler(event: DragEvent): void;
+  // to revert visual update if drop is canceled
+  dragLeaveHandler(event: DragEvent): void;
+}
+
 // Project TYpe
 
 enum ProjectStatus {
@@ -152,7 +167,7 @@ abstract class Component<T extends HTMLElement, U extends HTMLElement> {
 }
 
 // ProjectItem 132
-class ProjectItem extends Component<HTMLUListElement, HTMLLIElement> {
+class ProjectItem extends Component<HTMLUListElement, HTMLLIElement> implements Draggable {
   private project: ProjectModel;
 
   get getPersons() {
@@ -172,7 +187,22 @@ class ProjectItem extends Component<HTMLUListElement, HTMLLIElement> {
     this.renderContent();
   }
 
-  configure() {}
+  @Autobind
+  dragStartHandler(event: DragEvent): void {
+    console.log(this.project.id);
+    event.dataTransfer!.setData("text/plain", this.project.id);
+    event.dataTransfer!.effectAllowed = "move"; // controls the cursor will be shown
+  }
+
+  // @Autobind
+  dragEndHandler(event: DragEvent): void {
+    console.log(event);
+  }
+
+  configure() {
+    this.element.addEventListener("dragstart", this.dragStartHandler);
+    this.element.addEventListener("dragend", this.dragEndHandler);
+  }
 
   renderContent(): void {
     this.element.querySelector("h2")!.textContent = this.project.title;
@@ -182,7 +212,7 @@ class ProjectItem extends Component<HTMLUListElement, HTMLLIElement> {
 }
 
 // ProjectList class 127
-class ProjectList extends Component<HTMLDivElement, HTMLElement> {
+class ProjectList extends Component<HTMLDivElement, HTMLElement> implements DragTarget {
   assignedProjects: ProjectModel[];
 
   constructor(private type: "active" | "finished") {
@@ -193,7 +223,32 @@ class ProjectList extends Component<HTMLDivElement, HTMLElement> {
     this.renderContent(); // this will be called before renderProjects() above
   }
 
+  @Autobind
+  dragOverHandler(event: DragEvent): void {
+    // we set text/plain above
+    if (event.dataTransfer && event.dataTransfer.types[0] === "text/plain") {
+      event.preventDefault(); // the default for js is to not allow dropping, so we have to prevent that
+      const listEl = this.element.querySelector("ul")!;
+      listEl.classList.add("droppable");
+    }
+  }
+
+  dropHandler(event: DragEvent): void {
+    console.log(event.dataTransfer!.getData("text/plain"));
+  }
+
+  @Autobind
+  dragLeaveHandler(_: DragEvent): void {
+    // remove blue background
+    const listEl = this.element.querySelector("ul")!;
+    listEl.classList.remove("droppable");
+  }
+
   configure() {
+    this.element.addEventListener("dragover", this.dragOverHandler);
+    this.element.addEventListener("dragleave", this.dragLeaveHandler);
+    this.element.addEventListener("drop", this.dropHandler);
+
     projectState.addListener((projects: ProjectModel[]) => {
       const relevantProjects = projects.filter((prj) => {
         if (this.type === "active") {
